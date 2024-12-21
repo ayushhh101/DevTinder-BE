@@ -7,8 +7,13 @@ app.use("/test",(req, res) => {
   res.send('Hello Not world');
 });
 
-app.use((req, res) => {
-  res.send('Hello World 1');
+app.post("/user",(req, res) => {
+  console.log("Data saved")
+  res.send('Data saved');
+});
+
+app.get("/user",(req, res) => {
+  res.send({firstName:"Akshay",lastName:"Kumar"});
 });
 
 //Listening on some port so that anybody can connect 
