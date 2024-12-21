@@ -3,16 +3,8 @@ const express = require('express');
 // Create an instance of express application
 const app = express();
 
-app.use("/test",(req, res) => {
-  res.send('Hello Not world');
-});
-
-app.post("/user",(req, res) => {
-  console.log("Data saved")
-  res.send('Data saved');
-});
-
-app.get("/user",(req, res) => {
+app.get("/user/:userId",(req, res) => {
+  console.log(req.params)
   res.send({firstName:"Akshay",lastName:"Kumar"});
 });
 
