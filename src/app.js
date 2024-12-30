@@ -4,8 +4,11 @@ const connectDB = require('./config/database');
 const User = require('./models/user');
 // Create an instance of express application
 const app = express();
+// Middleware to parse the incoming request body & it works for all the routes automatically
+app.use(express.json());
 
 app.post("/signup", async (req, res) => {
+  console.log(req.body);
   //Creating a new instance of the User model 
   const user = new User({
     firstName: "Whyrat",
@@ -19,10 +22,22 @@ app.post("/signup", async (req, res) => {
     await user.save();
     res.send("User Created");
   } catch (error) {
-    res.status(400).send("Error", + error);
+    res.status(400).send("Error", +  error);
   }
 
 });
+
+app.put("/user", async (req, res) => {
+  try {
+    const emailId = req.body.emailId;
+    const data = req.body;
+    const user = await User.findOneAndUpdate({ emailId },data);
+    res.send("User Updated");
+  } catch (error) {
+    res.send("Error"+ error);
+  }
+});
+
 //First connect to the database and then start listening to your port 
 connectDB().then(() => {
   console.log("Connected to MongoDB");
