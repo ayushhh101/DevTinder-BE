@@ -27,6 +27,7 @@ app.post("/signup", async (req, res) => {
 
 });
 
+//Updating using the emailId
 app.put("/user", async (req, res) => {
   try {
     const emailId = req.body.emailId;
