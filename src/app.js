@@ -6,25 +6,55 @@ const User = require('./models/user');
 const app = express();
 // Middleware to parse the incoming request body & it works for all the routes automatically
 app.use(express.json());
+const { validateSignUpData } = require('./utils/validation');
+const bcrypt = require('bcrypt');
 
+//Creating a new user
 app.post("/signup", async (req, res) => {
-  console.log(req.body);
-  //Creating a new instance of the User model 
-  const user = new User({
-    firstName: "Whyrat",
-    lastName: "req.body.lastName",
-    emailId: "req.body.emailId",
-    password: "req.body.password",
-    age: "1",
-    gender: "haha"
-  })
   try {
+    // Validation of data
+    validateSignUpData(req);
+    //Encrypt the password
+    const { firstName, lastName , emailId, password } = req.body;
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    //Creating a new instance of the User model 
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passwordHash
+    })
+
     await user.save();
     res.send("User Created");
   } catch (error) {
-    res.status(400).send("Error", +  error);
+    res.status(400).send("Error" + error);
   }
+});
 
+//Login in 
+app.post("/login", async (req, res) => {
+  try {
+    //Encrypt the password
+    const { emailId, password } = req.body;
+
+    //Checking if emailId exists in DB
+    const user = await User.findOne({ emailId });
+    if (!user) {
+      throw new Error("Invalid Credentials");
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error("Invalid Credentials");
+    }
+    else {
+      res.send("User Logged In");
+    }
+  } catch (error) {
+    res.status(400).send("Error" + error);
+  }
 });
 
 //Updating using the emailId
@@ -32,10 +62,10 @@ app.put("/user", async (req, res) => {
   try {
     const emailId = req.body.emailId;
     const data = req.body;
-    const user = await User.findOneAndUpdate({ emailId },data);
+    const user = await User.findOneAndUpdate({ emailId }, data);
     res.send("User Updated");
   } catch (error) {
-    res.send("Error"+ error);
+    res.send("Error" + error);
   }
 });
 
