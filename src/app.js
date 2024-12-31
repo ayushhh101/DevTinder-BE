@@ -4,10 +4,14 @@ const connectDB = require('./config/database');
 const User = require('./models/user');
 // Create an instance of express application
 const app = express();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 // Middleware to parse the incoming request body & it works for all the routes automatically
 app.use(express.json());
+app.use(cookieParser());
+
 const { validateSignUpData } = require('./utils/validation');
-const bcrypt = require('bcrypt');
 
 //Creating a new user
 app.post("/signup", async (req, res) => {
@@ -15,7 +19,7 @@ app.post("/signup", async (req, res) => {
     // Validation of data
     validateSignUpData(req);
     //Encrypt the password
-    const { firstName, lastName , emailId, password } = req.body;
+    const { firstName, lastName, emailId, password } = req.body;
 
     const passwordHash = await bcrypt.hash(password, 10);
     //Creating a new instance of the User model 
@@ -46,17 +50,37 @@ app.post("/login", async (req, res) => {
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      throw new Error("Invalid Credentials");
-    }
-    else {
+    if (isPasswordValid) {
+      //Create a JWT Token
+      const token = jwt.sign({_id : user._id},"mysecretkey");
+      console.log(token)
+
+      //Add the Token to Cookie and send the response back to the user
+      res.cookie("token", token)
       res.send("User Logged In");
     }
+    else {
+      throw new Error("Invalid Credentials");
+    }
+
   } catch (error) {
     res.status(400).send("Error" + error);
   }
 });
 
+//Get User Profile
+app.get("/profile", async (req, res) => {
+  const cookies = req.cookies;
+
+  const {token} = cookies;
+  //Validate the token
+  console.log(cookies)
+
+  const decodedValue = jwt.verify(token,"mysecretkey");
+  console.log(decodedValue)
+  const user = await User.findOne({_id : decodedValue._id});
+  res.send(user);
+});
 //Updating using the emailId
 app.put("/user", async (req, res) => {
   try {
