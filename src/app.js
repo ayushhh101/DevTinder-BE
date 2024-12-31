@@ -6,6 +6,7 @@ const User = require('./models/user');
 const app = express();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { userAuth } = require('./middlewares/auth');
 const cookieParser = require('cookie-parser');
 // Middleware to parse the incoming request body & it works for all the routes automatically
 app.use(express.json());
@@ -69,16 +70,8 @@ app.post("/login", async (req, res) => {
 });
 
 //Get User Profile
-app.get("/profile", async (req, res) => {
-  const cookies = req.cookies;
-
-  const {token} = cookies;
-  //Validate the token
-  console.log(cookies)
-
-  const decodedValue = jwt.verify(token,"mysecretkey");
-  console.log(decodedValue)
-  const user = await User.findOne({_id : decodedValue._id});
+app.get("/profile", userAuth ,async (req, res) => {
+  const user = req.user;
   res.send(user);
 });
 //Updating using the emailId
