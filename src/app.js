@@ -14,77 +14,15 @@ app.use(cookieParser());
 
 const { validateSignUpData } = require('./utils/validation');
 
-//Creating a new user
-app.post("/signup", async (req, res) => {
-  try {
-    // Validation of data
-    validateSignUpData(req);
-    //Encrypt the password
-    const { firstName, lastName, emailId, password } = req.body;
+const authRouter = require('./routes/auth');
+const profileRouter = require('./routes/profile');
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    //Creating a new instance of the User model 
-    const user = new User({
-      firstName,
-      lastName,
-      emailId,
-      password: passwordHash
-    })
+app.use('/', authRouter)
+app.use('/', profileRouter)
 
-    await user.save();
-    res.send("User Created");
-  } catch (error) {
-    res.status(400).send("Error" + error);
-  }
-});
 
-//Login in 
-app.post("/login", async (req, res) => {
-  try {
-    //Encrypt the password
-    const { emailId, password } = req.body;
 
-    //Checking if emailId exists in DB
-    const user = await User.findOne({ emailId });
-    if (!user) {
-      throw new Error("Invalid Credentials");
-    }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (isPasswordValid) {
-      //Create a JWT Token
-      const token = jwt.sign({_id : user._id},"mysecretkey");
-      console.log(token)
-
-      //Add the Token to Cookie and send the response back to the user
-      res.cookie("token", token)
-      res.send("User Logged In");
-    }
-    else {
-      throw new Error("Invalid Credentials");
-    }
-
-  } catch (error) {
-    res.status(400).send("Error" + error);
-  }
-});
-
-//Get User Profile
-app.get("/profile", userAuth ,async (req, res) => {
-  const user = req.user;
-  res.send(user);
-});
-//Updating using the emailId
-app.put("/user", async (req, res) => {
-  try {
-    const emailId = req.body.emailId;
-    const data = req.body;
-    const user = await User.findOneAndUpdate({ emailId }, data);
-    res.send("User Updated");
-  } catch (error) {
-    res.send("Error" + error);
-  }
-});
 
 //First connect to the database and then start listening to your port 
 connectDB().then(() => {
