@@ -16,13 +16,11 @@ const { validateSignUpData } = require('./utils/validation');
 
 const authRouter = require('./routes/auth');
 const profileRouter = require('./routes/profile');
+const requestRouter = require('./routes/request');
 
 app.use('/', authRouter)
 app.use('/', profileRouter)
-
-
-
-
+app.use('/', requestRouter)
 
 //First connect to the database and then start listening to your port 
 connectDB().then(() => {
