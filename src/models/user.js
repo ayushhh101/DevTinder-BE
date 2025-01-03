@@ -23,34 +23,34 @@ const userSchema = new mongoose.Schema({
             }
         },
     },
-        password: {
-            type: String,
-            required: true
-        },
-        age: {
-            type: Number,
-            min: 18,
-
-        },
-        gender: {
-            type: String,
-            enum: {
-                values: ['male', 'female', 'others'],
-                message: '{VALUE} is not valid'
-            }
-        },
-        photoUrl: {
-            type: String
-        },
-        about: {
-            type: String,
-            default: "This is random default description of the user"
-        },
-        skills: {
-            type: [String]
-        },
+    password: {
+        type: String,
+        required: true
     },
-{
+    age: {
+        type: Number,
+        min: 18,
+
+    },
+    gender: {
+        type: String,
+        enum: {
+            values: ['male', 'female', 'others'],
+            message: '{VALUE} is not valid'
+        }
+    },
+    photoUrl: {
+        type: String
+    },
+    about: {
+        type: String,
+        default: "This is random default description of the user"
+    },
+    skills: {
+        type: [String]
+    },
+},
+    {
         timestamps: true
     });
 

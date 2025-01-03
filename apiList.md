@@ -11,8 +11,13 @@
 - PATCH /profile/password
 
 ## connectionRequestRouter
+- POST /request/send/:status/:userId
+- POST /request/review/:status/:requestId
 
-- POST /request/send/interested/:userId
-- POST /request/send/ignored/:userId
-- POST /request/send/accepted/:requestId
-- POST /request/send/rejected/:requestId
+## userRouter
+- GET /user/requests/received
+- GET /user/connections
+- GET /user/feed 
+
+
+STATUS : accepted , ignored , rejected , interested
