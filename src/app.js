@@ -9,6 +9,12 @@ const jwt = require('jsonwebtoken');
 const { userAuth } = require('./middlewares/auth');
 const cookieParser = require('cookie-parser');
 // Middleware to parse the incoming request body & it works for all the routes automatically
+const cors = require('cors');
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}))
 app.use(express.json());
 app.use(cookieParser());
 
