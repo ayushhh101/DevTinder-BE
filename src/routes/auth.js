@@ -23,8 +23,14 @@ authRouter.post("/signup", async (req, res) => {
       password: passwordHash
     })
 
-    await user.save();
-    res.send("User Created");
+    const savedUser = await user.save();
+    //Create a JWT Token
+    const token = jwt.sign({_id : user._id},"mysecretkey");
+
+    //Add the Token to Cookie and send the response back to the user
+    res.cookie("token", token)
+    
+    res.json({message:"User Created", data:savedUser});
   } catch (error) {
     res.status(400).send("Error" + error);
   }
@@ -49,17 +55,18 @@ authRouter.post("/login", async (req, res) => {
 
       //Add the Token to Cookie and send the response back to the user
       res.cookie("token", token)
-      res.json({
-        message: "User Logged In",
-        data : user
-      });
+      res.send(user);
     }
     else {
       throw new Error("Invalid Credentials");
     }
 
   } catch (error) {
-    res.status(400).send("Error" + error);
+    res.status(400).json(
+      {
+        message: "Invalid Credentials"
+      }
+    )
   }
 });
 
