@@ -25,7 +25,7 @@ authRouter.post("/signup", async (req, res) => {
 
     const savedUser = await user.save();
     //Create a JWT Token
-    const token = jwt.sign({_id : user._id},"mysecretkey");
+    const token = jwt.sign({_id : user._id},process.env.JWT_SECRET);
 
     //Add the Token to Cookie and send the response back to the user
     res.cookie("token", token)
