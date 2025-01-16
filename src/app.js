@@ -10,6 +10,7 @@ const { userAuth } = require('./middlewares/auth');
 const cookieParser = require('cookie-parser');
 // Middleware to parse the incoming request body & it works for all the routes automatically
 const cors = require('cors');
+const http = require('http');
 require('dotenv').config();
 
 app.use(cors({
@@ -25,17 +26,23 @@ const authRouter = require('./routes/auth');
 const profileRouter = require('./routes/profile');
 const requestRouter = require('./routes/request');
 const userRouter = require('./routes/user');
+const intializeSocket = require('./utils/socket');
 
 app.use('/', authRouter)
 app.use('/', profileRouter)
 app.use('/', requestRouter)
 app.use('/', userRouter)
 
+//This is needed for configuration of socket.io
+const server = http.createServer(app);
+
+intializeSocket(server )
+
 //First connect to the database and then start listening to your port 
 connectDB().then(() => {
   console.log("Connected to MongoDB");
   //Listening on some port so that anybody can connect 
-  app.listen(3000, () => {
+  server.listen(3000, () => {
     console.log('Server is running on port 3000');
   });
 }).catch((err) => {
