@@ -27,16 +27,18 @@ const profileRouter = require('./routes/profile');
 const requestRouter = require('./routes/request');
 const userRouter = require('./routes/user');
 const intializeSocket = require('./utils/socket');
+const chatRouter = require('./routes/chat');
 
 app.use('/', authRouter)
 app.use('/', profileRouter)
 app.use('/', requestRouter)
 app.use('/', userRouter)
+app.use('/', chatRouter)
 
 //This is needed for configuration of socket.io
 const server = http.createServer(app);
 
-intializeSocket(server )
+intializeSocket(server)
 
 //First connect to the database and then start listening to your port 
 connectDB().then(() => {
