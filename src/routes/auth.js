@@ -10,7 +10,7 @@ const {validateSignUpData} = require('../utils/validation');
 authRouter.post("/signup", async (req, res) => {
   try {
     // Validation of data
-    validateSignUpData(req);
+    validateSignUpData(req.body);
     //Encrypt the password
     const { firstName, lastName, emailId, password } = req.body;
 
@@ -32,7 +32,7 @@ authRouter.post("/signup", async (req, res) => {
     
     res.json({message:"User Created", data:savedUser});
   } catch (error) {
-    res.status(400).send("Error" + error);
+    res.status(400).json({ message: error.message });
   }
 });
 

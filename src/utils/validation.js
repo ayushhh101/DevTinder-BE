@@ -1,8 +1,8 @@
 const validator = require("validator");
 const { validate } = require("../models/user");
 
-const validateSignUpData = (req) => {
-  const { firstName, lastName, emailId, password } = req.body;
+const validateSignUpData = (body) => {
+  const { firstName, lastName, emailId, password } = body;
 
   if (!firstName || !lastName) {
     throw new Error("First Name and Last Name are required");
