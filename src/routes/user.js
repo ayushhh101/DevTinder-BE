@@ -100,4 +100,62 @@ userRouter.get('/user/feed', userAuth, async (req, res) => {
   }
 });
 
+userRouter.get('/user/search', async (req, res) => {
+  try {
+    const {
+      skills,        // comma-separated skill strings
+      location,
+      name,
+      headline,
+      currentPosition,
+      minAge,
+      maxAge,
+      page = 1,
+      limit = 20,
+    } = req.query;
+
+    let filter = {};
+
+    if (skills) {
+      const skillsArray = skills.split(',').map(s => s.trim());
+      filter.skills = { $in: skillsArray };
+    }
+    if (location) {
+      filter.location = location;
+    }
+    if (name) {
+      filter.$or = [
+        { firstName: { $regex: name, $options: 'i' } },
+        { lastName: { $regex: name, $options: 'i' } }
+      ];
+    }
+    if (headline) {
+      filter.headline = { $regex: headline, $options: 'i' };
+    }
+    if (currentPosition) {
+      filter.currentPosition = { $regex: currentPosition, $options: 'i' };
+    }
+    if (minAge || maxAge) {
+      filter.age = {};
+      if (minAge) filter.age.$gte = Number(minAge);
+      if (maxAge) filter.age.$lte = Number(maxAge);
+    }
+
+    const skip = (page - 1) * limit;
+
+    const users = await User.find(filter)
+      .select('-password')     // exclude sensitive info
+      .skip(skip)
+      .limit(Number(limit))
+      .exec();
+
+    const total = await User.countDocuments(filter);
+
+    res.json({ results: users, total, page: Number(page), pages: Math.ceil(total / limit) });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = userRouter;
