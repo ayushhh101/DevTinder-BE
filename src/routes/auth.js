@@ -4,7 +4,8 @@ const authRouter = express.Router();
 const User = require('../models/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const {validateSignUpData} = require('../utils/validation');
+const { validateSignUpData } = require('../utils/validation');
+const { userAuth } = require('../middlewares/auth');
 
 //Creating a new user
 authRouter.post("/signup", async (req, res) => {
@@ -23,14 +24,15 @@ authRouter.post("/signup", async (req, res) => {
       password: passwordHash
     })
 
+    user.lastSeen = Date.now();
     const savedUser = await user.save();
     //Create a JWT Token
-    const token = jwt.sign({_id : user._id},process.env.JWT_SECRET);
+    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
 
     //Add the Token to Cookie and send the response back to the user
     res.cookie("token", token)
-    
-    res.json({message:"User Created", data:savedUser});
+
+    res.json({ message: "User Created", data: savedUser });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -51,9 +53,11 @@ authRouter.post("/login", async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (isPasswordValid) {
       //Create a JWT Token
-      const token = jwt.sign({_id : user._id},"mysecretkey");
+      const token = jwt.sign({ _id: user._id }, "mysecretkey");
 
       //Add the Token to Cookie and send the response back to the user
+      user.lastSeen = Date.now();
+      await user.save();
       res.cookie("token", token)
       res.send(user);
     }
@@ -71,7 +75,9 @@ authRouter.post("/login", async (req, res) => {
 });
 
 //Logout
-authRouter.post("/logout", async (req, res) => {
+authRouter.post("/logout", userAuth, async (req, res) => {
+  const userId = req.user._id;
+  await User.findByIdAndUpdate(userId, { lastSeen: Date.now() });
   res.clearCookie("token");
   res.send("User Logged Out");
 });

@@ -3,6 +3,7 @@ const User = require('../models/user');
 const { userAuth } = require('../middlewares/auth');
 const userRouter = express.Router();
 const ConnectionRequest = require('../models/connectionRequest');
+const { mongoose } = require('mongoose');
 
 const USER_SAFE_DATA = 'firstName lastName age about skills photoUrl'
 
@@ -158,4 +159,29 @@ userRouter.get('/user/search', async (req, res) => {
   }
 });
 
+userRouter.get('/user/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  // Validate ObjectId
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({ message: 'Invalid user ID' });
+  }
+
+  try {
+    const user = await User.findById(userId)
+      .select('-password -__v')  // remove password and mongoose __v field
+      .lean();                   // return plain JS object, faster & easier to modify if needed
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Optionally, you can process/filter fields here if you want to hide something
+    
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user profile', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 module.exports = userRouter;

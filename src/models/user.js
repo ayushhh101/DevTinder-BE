@@ -57,8 +57,13 @@ const userSchema = new mongoose.Schema({
     linkedinUrl: String,
     projects: [
         { title: String, description: String, link: String }
-    ]
+    ],
+    lastSeen: {
+        type: Date,
+        default: Date.now
+    }
 },
+
     {
         timestamps: true
     });
