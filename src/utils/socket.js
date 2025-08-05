@@ -10,7 +10,6 @@ const getSecretRoomId = (userId, targetUserId) => {
     .digest("hex")
 }
 
-
 const TYPING_TIMEOUT = 3000;
 
 const intializeSocket = (server) => {
@@ -23,17 +22,16 @@ const intializeSocket = (server) => {
     }
   })
 
+  const onlineUsers = new Map();
+
   io.on("connection", (socket) => {
-    const onlineUsers = new Map();
-    const connectionTime = new Date();
 
     socket.on("setOnline", (userId) => {
       onlineUsers.set(userId, {
         socketId: socket.id,
-        lastSeen: null,
+        // lastSeen: null,
         status: "online"
       });
-      // Notify all friends about online status
       io.emit("userStatusChanged", { userId, status: "online" });
     });
 
@@ -42,7 +40,7 @@ const intializeSocket = (server) => {
       socket.emit("userStatusResponse", {
         userId: targetUserId,
         status: userData?.status || "offline",
-        lastSeen: userData?.lastSeen || new Date()
+        // lastSeen: userData?.lastSeen || new Date()
       });
     });
 
@@ -57,8 +55,6 @@ const intializeSocket = (server) => {
         status: onlineUsers.has(userId) ? "online" : "offline"
       });
     });
-
-
 
     socket.on("sendMessage", async ({ firstName, lastName, userId, targetUserId, text }) => {
       //Save message to database
@@ -103,7 +99,6 @@ const intializeSocket = (server) => {
       }
     })
 
-    //for typing indicator
     socket.on("typing", ({ userId, targetUserId, firstName }) => {
       const roomId = getSecretRoomId(userId, targetUserId);
 
@@ -126,19 +121,17 @@ const intializeSocket = (server) => {
     });
 
     socket.on("disconnect", () => {
-      // Update status to offline
       for (const [userId, userData] of onlineUsers) {
         if (userData.socketId === socket.id) {
           onlineUsers.set(userId, {
             ...userData,
             status: "offline",
-            lastSeen: new Date()
+            // lastSeen: new Date()
           });
-          // Notify all friends about offline status
           io.emit("userStatusChanged", {
             userId,
             status: "offline",
-            lastSeen: new Date()
+            // lastSeen: new Date()
           });
           break;
         }
