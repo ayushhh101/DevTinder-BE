@@ -120,6 +120,20 @@ const intializeSocket = (server) => {
       }, TYPING_TIMEOUT);
     });
 
+    socket.on("video-offer", ({ targetUserId, offer, from }) => {
+      const target = onlineUsers.get(targetUserId);
+      if (target) io.to(target.socketId).emit("video-offer", { offer, from });
+    });
+    socket.on("video-answer", ({ targetUserId, answer, from }) => {
+      const target = onlineUsers.get(targetUserId);
+      if (target) io.to(target.socketId).emit("video-answer", { answer, from });
+    });
+    
+    socket.on("ice-candidate", ({ targetUserId, candidate, from }) => {
+      const target = onlineUsers.get(targetUserId);
+      if (target) io.to(target.socketId).emit("ice-candidate", { candidate, from });
+    });
+
     socket.on("disconnect", () => {
       for (const [userId, userData] of onlineUsers) {
         if (userData.socketId === socket.id) {
