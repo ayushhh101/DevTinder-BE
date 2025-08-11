@@ -93,7 +93,26 @@ const intializeSocket = (server) => {
 
         await chat.save()
         //sending message to the room that both users are in 
-        io.to(roomId).emit("messageReceived", { firstName, lastName, text })
+        io.to(roomId).emit("messageReceived", {
+          firstName,
+          lastName,
+          text,
+          senderId: userId
+        });
+
+        //Send push-style notification to the receiver only if online
+        const targetUser = onlineUsers.get(targetUserId);
+        if (targetUser) {
+          io.to(targetUser.socketId).emit("newMessageNotification", {
+            fromUserId: userId,
+            firstName,
+            lastName,
+            text,
+            timestamp: new Date()
+          });
+        }
+
+
       } catch (error) {
         console.log(error)
       }
@@ -120,6 +139,41 @@ const intializeSocket = (server) => {
       }, TYPING_TIMEOUT);
     });
 
+    socket.on("sendConnectionRequestNotification", ({ fromUserId, toUserId, firstName, lastName }) => {
+      const target = onlineUsers.get(toUserId);
+      if (target) {
+        io.to(target.socketId).emit("newConnectionRequest", {
+          fromUserId,
+          firstName,
+          lastName,
+          message: `${firstName} sent you a connection request.`,
+          timestamp: new Date()
+        });
+      }
+    });
+
+    // CONNECTION ACCEPTED NOTIFICATION
+    socket.on("sendConnectionAcceptedNotification", ({ fromUserId, toUserId, firstName, lastName }) => {
+      const target = onlineUsers.get(toUserId);
+      if (target) {
+        io.to(target.socketId).emit("connectionAccepted", {
+          fromUserId,
+          firstName,
+          lastName,
+          message: `${firstName} accepted your connection request.`,
+          timestamp: new Date()
+        });
+        // 🔔 Optional: also notify that a new connection was added
+        io.to(target.socketId).emit("connectionAdded", {
+          fromUserId,
+          firstName,
+          lastName,
+          message: `You are now connected with ${firstName}.`,
+          timestamp: new Date()
+        });
+      }
+    });
+
     socket.on("video-offer", ({ targetUserId, offer, from }) => {
       const target = onlineUsers.get(targetUserId);
       if (target) io.to(target.socketId).emit("video-offer", { offer, from });
@@ -128,7 +182,7 @@ const intializeSocket = (server) => {
       const target = onlineUsers.get(targetUserId);
       if (target) io.to(target.socketId).emit("video-answer", { answer, from });
     });
-    
+
     socket.on("ice-candidate", ({ targetUserId, candidate, from }) => {
       const target = onlineUsers.get(targetUserId);
       if (target) io.to(target.socketId).emit("ice-candidate", { candidate, from });
