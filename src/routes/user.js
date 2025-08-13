@@ -5,7 +5,22 @@ const userRouter = express.Router();
 const ConnectionRequest = require('../models/connectionRequest');
 const { mongoose } = require('mongoose');
 
-const USER_SAFE_DATA = 'firstName lastName age about skills photoUrl'
+const USER_SAFE_DATA = `
+  firstName
+  lastName
+  age
+  gender
+  about
+  skills
+  photoUrl
+  bannerUrl
+  headline
+  currentPosition
+  location
+  githubUrl
+  linkedinUrl
+  projects
+`;
 
 //Get all the pending connection requests for the loggedIN user
 userRouter.get('/user/requests/received', userAuth, async (req, res) => {
