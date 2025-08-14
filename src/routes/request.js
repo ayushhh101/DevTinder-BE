@@ -5,7 +5,6 @@ const ConnectionRequest = require('../models/connectionRequest');
 const { userAuth } = require('../middlewares/auth');
 const User = require('../models/user');
 
-//Send a connection request
 requestRouter.post('/request/send/:status/:toUserId', userAuth, async (req, res) => {
   try {
     const fromUserId = req.user._id;
@@ -61,7 +60,6 @@ requestRouter.post('/request/send/:status/:toUserId', userAuth, async (req, res)
   }
 });
 
-//Review a connection request
 requestRouter.post('/request/review/:status/:requestId', userAuth, async (req, res) => {
   try {
     //loggedInUser === toUserId
@@ -97,7 +95,8 @@ requestRouter.post('/request/review/:status/:requestId', userAuth, async (req, r
     });
   }
   catch (error) {
-    res.status(500).send("ERROR" + error.message);
+    console.error("Error reviewing connection request:", error);
+    res.status(500).json({ message: "Internal server error. Please try again later." });
   }
 });
 
