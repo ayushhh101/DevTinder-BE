@@ -52,13 +52,14 @@ userRouter.get('/user/connections', userAuth, async (req, res) => {
         { toUserId: loggedInUser._id }
       ],
       status: 'accepted'
-    }).populate('fromUserId', USER_SAFE_DATA).populate('toUserId', USER_SAFE_DATA);
+    })
+      .populate('fromUserId', USER_SAFE_DATA)
+      .populate('toUserId', USER_SAFE_DATA);
 
     const data = connectionRequests.map((row) => {
-      if (row.fromUserId._id.equals(loggedInUser._id)) {
-        return row.toUserId;
-      }
-      return row.fromUserId;
+      return row.fromUserId._id.equals(loggedInUser._id)
+        ? row.toUserId
+        : row.fromUserId;
     });
 
     res.json({
@@ -67,7 +68,10 @@ userRouter.get('/user/connections', userAuth, async (req, res) => {
     })
 
   } catch (error) {
-    res.status(400).send("ERROR" + error.message);
+     console.error("Error fetching connections:", error); // Server log
+    res.status(500).json({
+      message: "Failed to fetch connections. Please try again later."
+    });
   }
 });
 
@@ -79,7 +83,7 @@ userRouter.get('/user/feed', userAuth, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
     limit = limit > 30 ? 30 : limit;
-    const skip = (page-1)*limit;
+    const skip = (page - 1) * limit;
 
     //Find all the connection requests ( send and received )
     const connectionRequests = await ConnectionRequest.find({
@@ -98,20 +102,24 @@ userRouter.get('/user/feed', userAuth, async (req, res) => {
 
     const users = await User.find({
       $and: [
-      {_id: {
-        //ID should not be in present in the hideUsersFromFeed
-        $nin: Array.from(hideUsersFromFeed)
-      }},
-      //ID should not be the loggedInUser
-      {_id: {
-        $ne: loggedInUser._id
-      }}
-    ]
+        {
+          _id: {
+            //ID should not be in present in the hideUsersFromFeed
+            $nin: Array.from(hideUsersFromFeed)
+          }
+        },
+        //ID should not be the loggedInUser
+        {
+          _id: {
+            $ne: loggedInUser._id
+          }
+        }
+      ]
     }).select(USER_SAFE_DATA).skip(skip).limit(limit);
 
     res.send(users)
 
-  }catch(error){
+  } catch (error) {
     res.status(400).send("ERROR" + error.message);
   }
 });
@@ -192,7 +200,7 @@ userRouter.get('/user/:userId', async (req, res) => {
     }
 
     // Optionally, you can process/filter fields here if you want to hide something
-    
+
     res.json(user);
   } catch (error) {
     console.error('Error fetching user profile', error);
