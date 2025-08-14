@@ -23,6 +23,21 @@ const intializeSocket = (server) => {
   })
 
   const onlineUsers = new Map();
+  const callTimeouts = new Map();
+  const userBusy = new Map();
+
+  // Util to get both caller and callee sockets
+  function getSocketsForCall(callerId, calleeId) {
+    const sockets = [];
+    if (onlineUsers.has(callerId)) sockets.push(onlineUsers.get(callerId).socketId);
+    if (onlineUsers.has(calleeId)) sockets.push(onlineUsers.get(calleeId).socketId);
+    return sockets;
+  }
+
+  function clearBusyFlags(callerId, calleeId) {
+    userBusy.set(callerId, false);
+    userBusy.set(calleeId, false);
+  }
 
   io.on("connection", (socket) => {
 
@@ -40,7 +55,6 @@ const intializeSocket = (server) => {
       socket.emit("userStatusResponse", {
         userId: targetUserId,
         status: userData?.status || "offline",
-        // lastSeen: userData?.lastSeen || new Date()
       });
     });
 
@@ -48,7 +62,7 @@ const intializeSocket = (server) => {
       const roomId = getSecretRoomId(userId, targetUserId);
       socket.join(roomId);
 
-      // Notify the other user about who joined
+      // notify the other user about who joined
       socket.to(roomId).emit("userJoined", {
         userId,
         firstName,
@@ -152,7 +166,6 @@ const intializeSocket = (server) => {
       }
     });
 
-    // CONNECTION ACCEPTED NOTIFICATION
     socket.on("sendConnectionAcceptedNotification", ({ fromUserId, toUserId, firstName, lastName }) => {
       const target = onlineUsers.get(toUserId);
       if (target) {
@@ -174,6 +187,65 @@ const intializeSocket = (server) => {
       }
     });
 
+    socket.on("callInitiated", ({ targetUserId, from }) => {
+      if (userBusy.get(targetUserId)) {
+        socket.emit("callRejected", { from: { userId: targetUserId, firstName: "(Busy)" }, busy: true });
+        return;
+      }
+      userBusy.set(from.userId, true);
+      userBusy.set(targetUserId, true);
+
+      const target = onlineUsers.get(targetUserId);
+      if (target) {
+        // Notify callee of incoming call
+        io.to(target.socketId).emit("incomingCall", {
+          from, // caller info
+          timestamp: new Date()
+        });
+
+        //miss call
+        const callKey = `${from.userId}_${targetUserId}`;
+        callTimeouts.set(callKey, setTimeout(() => {
+          if (onlineUsers.has(from.userId)) io.to(onlineUsers.get(from.userId).socketId).emit("missedCall", { targetUserId });
+          if (target) io.to(target.socketId).emit("missedCall", { from });
+          userBusy.set(from.userId, false);
+          userBusy.set(targetUserId, false);
+          callTimeouts.delete(callKey);
+        }, 20000));
+      }
+    });
+
+    socket.on("callAccepted", ({ targetUserId, from }) => {
+      const callKey = `${targetUserId}_${from.userId}`; //invert params
+      clearTimeout(callTimeouts.get(callKey));
+      callTimeouts.delete(callKey);
+
+      // notify both
+      const caller = onlineUsers.get(targetUserId),
+        callee = onlineUsers.get(from.userId);
+      if (caller) io.to(caller.socketId).emit("callAccepted", { from });
+      if (callee) io.to(callee.socketId).emit("callAccepted", { from });
+    });
+
+    // Callee rejects call
+    socket.on("callRejected", ({ targetUserId, from }) => {
+      const callKey = `${targetUserId}_${from.userId}`; // invert for join
+      clearTimeout(callTimeouts.get(callKey));
+      callTimeouts.delete(callKey);
+      clearBusyFlags(from.userId, targetUserId);
+      const caller = onlineUsers.get(targetUserId);
+      if (caller) io.to(caller.socketId).emit("callRejected", { from });
+    });
+
+    // Either ends the call
+    socket.on("callEnded", ({ targetUserId, from }) => {
+      clearBusyFlags(from.userId, targetUserId);
+      const target = onlineUsers.get(targetUserId);
+      if (target) {
+        io.to(target.socketId).emit("callEnded", { from });
+      }
+    });
+
     socket.on("video-offer", ({ targetUserId, offer, from }) => {
       const target = onlineUsers.get(targetUserId);
       if (target) io.to(target.socketId).emit("video-offer", { offer, from });
@@ -191,6 +263,7 @@ const intializeSocket = (server) => {
     socket.on("disconnect", () => {
       for (const [userId, userData] of onlineUsers) {
         if (userData.socketId === socket.id) {
+          userBusy.delete(userId);
           onlineUsers.set(userId, {
             ...userData,
             status: "offline",
