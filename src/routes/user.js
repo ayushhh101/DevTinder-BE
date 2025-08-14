@@ -68,7 +68,7 @@ userRouter.get('/user/connections', userAuth, async (req, res) => {
     })
 
   } catch (error) {
-     console.error("Error fetching connections:", error); // Server log
+    console.error("Error fetching connections:", error); // Server log
     res.status(500).json({
       message: "Failed to fetch connections. Please try again later."
     });
@@ -85,7 +85,6 @@ userRouter.get('/user/feed', userAuth, async (req, res) => {
     limit = limit > 30 ? 30 : limit;
     const skip = (page - 1) * limit;
 
-    //Find all the connection requests ( send and received )
     const connectionRequests = await ConnectionRequest.find({
       $or: [
         { fromUserId: loggedInUser._id },
@@ -93,7 +92,7 @@ userRouter.get('/user/feed', userAuth, async (req, res) => {
       ]
     }).select('fromUserId toUserId')
 
-    //Set() is a collection of unique values
+    //ids to hide from feed
     const hideUsersFromFeed = new Set()
     connectionRequests.forEach((req) => {
       hideUsersFromFeed.add(req.fromUserId.toString())
@@ -104,20 +103,26 @@ userRouter.get('/user/feed', userAuth, async (req, res) => {
       $and: [
         {
           _id: {
-            //ID should not be in present in the hideUsersFromFeed
+            //id should not be in present in the hideUsersFromFeed
             $nin: Array.from(hideUsersFromFeed)
           }
         },
-        //ID should not be the loggedInUser
         {
           _id: {
+            //id should not be the loggedInUser
             $ne: loggedInUser._id
           }
         }
       ]
-    }).select(USER_SAFE_DATA).skip(skip).limit(limit);
+    })
+      .select(USER_SAFE_DATA)
+      .skip(skip)
+      .limit(limit);
 
-    res.send(users)
+    res.status(200).json({
+      message: 'Feed fetched successfully',
+      data: users
+    });
 
   } catch (error) {
     res.status(400).send("ERROR" + error.message);
@@ -185,26 +190,30 @@ userRouter.get('/user/search', async (req, res) => {
 userRouter.get('/user/:userId', async (req, res) => {
   const { userId } = req.params;
 
-  // Validate ObjectId
   if (!mongoose.Types.ObjectId.isValid(userId)) {
     return res.status(400).json({ message: 'Invalid user ID' });
   }
 
   try {
     const user = await User.findById(userId)
-      .select('-password -__v')  // remove password and mongoose __v field
-      .lean();                   // return plain JS object, faster & easier to modify if needed
+      .select('-password -__v')
+      .lean(); // return plain js object
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Optionally, you can process/filter fields here if you want to hide something
+    return res.status(200).json({
+      message: 'User profile fetched successfully',
+      data: user
+    });
 
-    res.json(user);
   } catch (error) {
-    console.error('Error fetching user profile', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error(`Error fetching user profile for ID ${userId}:`, error);
+    return res.status(500).json({
+      message: 'An unexpected error occurred. Please try again later.'
+    });
   }
 });
+
 module.exports = userRouter;
